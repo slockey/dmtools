@@ -10,28 +10,30 @@ from pprint import pprint
 
 logging.basicConfig(format='%(asctime)s %(levelname)s check_semasiodata.py: %(message)s', level=logging.INFO)
 
-# merge 5e monsters with their environment metadata
-
 
 def removeLicense(monsters):
     logging.info("Removing license object from {}".format(monstersSourceFile))
-    for monster in monsters:
+    for idx in range(len(monsters)):
+        monster = monsters[idx]
         if 'license' in monster:
-            del monster['license']
+            monsters.pop(idx)
     return monsters
 
 
 def mergeMetadata(monsters, environments, outFile):
     for monster in monsters:
-        logging.info(monster['name'])
-        envListToAdd = []
-        for env in environments:
-            for monsterInEnv in env['monsters']:
-                if monster['name'] in monsterInEnv['name']:
-                    envListToAdd.append(env['name'])
-                    break
-        # append the env list to the monster
-        monster['environments'] = envListToAdd
+        try:
+            logging.info(monster['name'])
+            envListToAdd = []
+            for env in environments:
+                for monsterInEnv in env['monsters']:
+                    if monster['name'] in monsterInEnv['name']:
+                        envListToAdd.append(env['name'])
+                        break
+            # append the env list to the monster
+            monster['environments'] = envListToAdd
+        except KeyError:
+            logging.warning("Encountered entity with no name.")
 
     # create the output file
     with open(outFile, 'w') as outfile:
@@ -56,8 +58,11 @@ if __name__ == '__main__':
         envMappingSourceFile = props['monsters.by.environment.file.path']
         mergedOutputFile = props['merged.output.file.path']
 
+    # load and massage the monsters file
     monsters = json.load(open(monstersSourceFile))
+    monsters = removeLicense(monsters)
+
+    # load the environments mapping file
     environments = json.load(open(envMappingSourceFile))
  
-    monsters = removeLicense(monsters)
     mergeMetadata(monsters, environments, mergedOutputFile)
